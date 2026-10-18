@@ -7,7 +7,7 @@ com painel de alertas e gráfico de receitas e despesas.
 
 Um único arquivo, `app/index.html`, que funciona de três jeitos:
 
-- **App instalável (PWA):** publicado em qualquer endereço HTTPS (GitHub Pages, Vercel, Netlify), abre no celular e
+- **App instalável (PWA):** publicado automaticamente em https://frouzin.github.io/gestao-sitio/ (ver `.github/workflows/pages.yml`); abre no celular e
   pode ser instalado na tela inicial. Funciona sem internet. Os dados ficam no próprio aparelho; use
   *Gestão → Dados → Baixar cópia de segurança* de vez em quando.
 - **Página no claude.ai:** a parte do arquivo a partir do comentário `<!-- ARTIFACT` é publicada como página;

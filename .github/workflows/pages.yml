@@ -1,0 +1,28 @@
+# Publica a pasta app/ no GitHub Pages a cada envio (o app fica em https://frouzin.github.io/gestao-sitio/).
+name: Publicar app
+on:
+  push:
+    branches: [claude/sitio-management-system-qlki7d, main]
+    paths: ["app/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: node app/teste.mjs
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app
+      - id: deploy
+        uses: actions/deploy-pages@v4
