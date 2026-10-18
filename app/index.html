@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#24563a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sítio">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<!-- ARTIFACT: daqui para baixo é também a página publicada no claude.ai (ver README) -->
+<title>Gestão do Sítio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&display=swap">
+<style>
+/* Layout: app de celular — barra superior, conteúdo em cartões, barra de abas inferior e botão "+" flutuante.
+   Em telas largas a barra de abas vira menu lateral. Formulários abrem numa folha que sobe de baixo. */
+:root {
+  --bg: #f1f4ee; --surface: #ffffff; --surface-2: #e7ece2; --ink: #16211a; --muted: #5a695d; --line: #d6ddd1;
+  --bar: #24563a; --bar-ink: #ffffff; --accent: #24563a; --accent-ink: #ffffff; --accent-soft: #dbe9da;
+  --sun: #e3b23c;
+  --ok: #2e7d32; --warn: #8a5a00; --bad: #b3261e;
+  --serie-rec: #2f7a45; --serie-desp: #c08a1e;
+  --sombra: 0 1px 2px rgb(22 33 26 / .06), 0 2px 8px rgb(22 33 26 / .05);
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --nav-h: 64px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1410; --surface: #172019; --surface-2: #202a22; --ink: #e3eae1; --muted: #9aa79c; --line: #2a352c;
+    --bar: #15241a; --bar-ink: #e3eae1; --accent: #7cc68f; --accent-ink: #0c1c10; --accent-soft: #1f3526;
+    --sun: #e9c062; --ok: #7fd18a; --warn: #e0b252; --bad: #f2867b;
+    --serie-rec: #4aa868; --serie-desp: #b07a12; --sombra: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1410; --surface: #172019; --surface-2: #202a22; --ink: #e3eae1; --muted: #9aa79c; --line: #2a352c;
+  --bar: #15241a; --bar-ink: #e3eae1; --accent: #7cc68f; --accent-ink: #0c1c10; --accent-soft: #1f3526;
+  --sun: #e9c062; --ok: #7fd18a; --warn: #e0b252; --bad: #f2867b;
+  --serie-rec: #4aa868; --serie-desp: #b07a12; --sombra: none; color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--body); -webkit-tap-highlight-color: transparent; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bar); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.gutter { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* Barra superior */
+#topo { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bar); color: var(--bar-ink); }
+#topo .gutter { padding-block: 14px 16px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; max-width: 1080px; margin: 0 auto; }
+#topo h1 { font: 800 1.6rem/1.1 var(--display); margin: 0; letter-spacing: -.02em; }
+#topo p { margin: 2px 0 0; font-size: .85rem; opacity: .82; }
+#modo { font-size: .72rem; border: 1px solid color-mix(in srgb, var(--bar-ink) 35%, transparent); border-radius: 999px; padding: 2px 10px; white-space: nowrap; opacity: .9; }
+
+/* Abas inferiores / menu lateral */
+#abas { position: fixed; z-index: 20; inset: auto 0 0 0; display: flex; background: var(--surface); border-top: 1px solid var(--line);
+  padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+#abas button { flex: 1; min-width: 0; display: grid; justify-items: center; gap: 2px; background: none; border: 0; padding: 4px 0; cursor: pointer; color: var(--muted); font-size: .72rem; }
+#abas .ic { width: 56px; height: 30px; display: grid; place-items: center; border-radius: 999px; transition: background .2s; }
+#abas button[aria-current="page"] { color: var(--ink); font-weight: 700; }
+#abas button[aria-current="page"] .ic { background: var(--accent-soft); color: var(--accent); }
+svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+main { padding-bottom: calc(var(--nav-h) + 96px + env(safe-area-inset-bottom, 0px)); }
+#conteudo { max-width: 1080px; margin: 0 auto; padding-block: 16px; display: grid; gap: 18px; }
+
+/* FAB */
+#fab { position: fixed; z-index: 19; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(var(--nav-h) + 16px + env(safe-area-inset-bottom, 0px));
+  height: 56px; min-width: 56px; padding: 0 20px 0 16px; border-radius: 18px; border: 0; background: var(--accent); color: var(--accent-ink);
+  display: flex; align-items: center; gap: 8px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 18px rgb(0 0 0 / .22); }
+#fab svg { width: 24px; height: 24px; }
+
+@media (min-width: 900px) {
+  #abas { inset: 0 auto 0 0; width: 220px; flex-direction: column; gap: 4px; border-top: 0; border-right: 1px solid var(--line);
+    padding: calc(20px + env(safe-area-inset-top, 0px)) 12px 20px max(12px, env(safe-area-inset-left, 0px)); }
+  #abas::before { content: "Gestão do Sítio"; font: 800 1.15rem var(--display); padding: 0 12px 14px; color: var(--accent); }
+  #abas button { flex: none; display: flex; align-items: center; gap: 10px; font-size: .95rem; padding: 2px 0; }
+  #abas .ic { width: 44px; height: 36px; }
+  #topo, main { margin-left: 220px; }
+  main { padding-bottom: 96px; }
+  #fab { bottom: 24px; right: 24px; }
+}
+
+/* Blocos */
+h2 { font: 700 1.2rem/1.25 var(--display); margin: 0; text-wrap: balance; }
+.secao { display: grid; gap: 10px; min-width: 0; }
+.secao-cab { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.painel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--sombra); min-width: 0; }
+.painel.pad { padding: 16px; }
+.duas { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.leve { color: var(--muted); }
+.vazio { color: var(--muted); padding: 20px 16px; text-align: center; margin: 0; }
+
+.saudacao { display: flex; align-items: center; gap: 12px; }
+.saudacao .sol { width: 14px; height: 14px; border-radius: 50%; background: var(--sun); box-shadow: 0 0 0 5px color-mix(in srgb, var(--sun) 28%, transparent); flex: none; }
+
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 700px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.kpi { text-align: left; padding: 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sombra); cursor: pointer; display: grid; gap: 2px; min-width: 0; }
+.kpi .rot { font-size: .8rem; color: var(--muted); }
+.kpi .val { font: 700 1.45rem/1.15 var(--display); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kpi .sub { font-size: .78rem; color: var(--muted); }
+.kpi .sub.ruim { color: var(--bad); }
+
+.nota { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 14px; background: var(--accent-soft); }
+
+/* Listas de itens */
+.lista { list-style: none; margin: 0; padding: 0; }
+.lista > li + li { border-top: 1px solid var(--line); }
+.grupo-rot { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 12px 16px 4px; font-weight: 700; }
+.alerta { display: flex; gap: 12px; align-items: center; width: 100%; text-align: left; background: none; border: 0; padding: 12px 16px; cursor: pointer; }
+.alerta .txt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.alerta .mod { display: block; font-size: .75rem; color: var(--muted); }
+.marca { width: 10px; height: 10px; border-radius: 3px; flex: none; background: var(--muted); }
+.marca.atrasado { background: var(--bad); } .marca.semana { background: var(--warn); } .marca.depois { background: var(--accent); }
+.quando { font-size: .8rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.quando.atrasado { color: var(--bad); font-weight: 700; }
+
+.item { display: flex; gap: 12px; align-items: center; padding: 12px 16px; }
+.item .abrir { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; display: grid; gap: 4px; }
+.item h3 { font: 600 1.02rem/1.3 var(--display); margin: 0; overflow-wrap: anywhere; }
+.item.feito h3 { text-decoration: line-through; color: var(--muted); }
+.meta { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: .85rem; color: var(--ink); }
+.meta .rot { color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: .75rem; line-height: 1.7; padding: 0 9px; border-radius: 999px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+.chip.prazo.atrasado { background: color-mix(in srgb, var(--bad) 15%, transparent); color: var(--bad); font-weight: 700; }
+.chip.prazo.semana { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); font-weight: 700; }
+.chip.ex { background: color-mix(in srgb, var(--sun) 30%, transparent); color: var(--ink); }
+.check { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--muted); background: none; cursor: pointer; flex: none; display: grid; place-items: center; padding: 0; }
+.check svg { width: 16px; height: 16px; stroke: var(--accent-ink); stroke-width: 3; fill: none; opacity: 0; }
+.check[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+.check[aria-checked="true"] svg { opacity: 1; }
+.valor { font: 700 1rem var(--display); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.valor.rec { color: var(--ok); } .valor.desp { color: var(--ink); }
+.passo { display: flex; align-items: center; gap: 4px; flex: none; }
+.passo button { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); cursor: pointer; font-weight: 700; font-size: 1.1rem; }
+.passo span { min-width: 56px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; font-size: .95rem; }
+.passo span small { display: block; font-weight: 400; font-size: .7rem; color: var(--muted); }
+.passo.baixo span { color: var(--bad); }
+
+/* Controles de lista */
+.segmentos { display: flex; gap: 4px; padding: 4px; background: var(--surface-2); border-radius: 14px; overflow-x: auto; }
+.segmentos button { flex: 1 0 auto; border: 0; background: none; padding: 8px 14px; border-radius: 10px; cursor: pointer; color: var(--muted); white-space: nowrap; }
+.segmentos button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: var(--sombra); }
+.busca { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 0 12px; }
+.busca svg { color: var(--muted); flex: none; }
+.busca input { border: 0; background: none; padding: 12px 0; min-height: 46px; width: 100%; font: inherit; color: var(--ink); outline: none; }
+.busca:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.filtros { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.filtros::-webkit-scrollbar { display: none; }
+.filtros button { flex: none; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: .85rem; }
+.filtros button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.filtros button small { opacity: .7; margin-left: 4px; }
+
+/* Gráficos */
+.grafico svg { width: 100%; height: auto; display: block; }
+.grafico text { fill: var(--muted); font: 11px var(--body); }
+.grafico .grade-l { stroke: var(--line); stroke-width: 1; }
+.grafico .hit { fill: transparent; cursor: pointer; }
+.grafico .hit:hover, .grafico .hit.sel { fill: color-mix(in srgb, var(--ink) 6%, transparent); }
+.legenda { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .85rem; align-items: center; }
+.legenda i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.leitura { font-size: .9rem; min-height: 1.45em; font-variant-numeric: tabular-nums; }
+.barras { display: grid; gap: 10px; }
+.barra-h { display: grid; gap: 4px; }
+.barra-h .linha { display: flex; justify-content: space-between; gap: 8px; font-size: .9rem; }
+.barra-h .trilho { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.barra-h .trilho span { display: block; height: 100%; border-radius: 4px; background: var(--serie-desp); }
+.linha-v { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; }
+.linha-v b { font-variant-numeric: tabular-nums; }
+
+/* Botões */
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 16px; cursor: pointer; font-weight: 700; min-height: 44px; }
+.btn.prim { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.perigo { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); background: transparent; }
+.btn.perigo.armado { background: var(--bad); color: var(--surface); border-color: var(--bad); }
+.btn:disabled { opacity: .6; cursor: wait; }
+.acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* Folha (formulário) */
+#folha { border: 0; padding: 0; background: var(--surface); color: var(--ink); width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 22px 22px 0 0;
+  max-height: 92vh; box-shadow: 0 -8px 30px rgb(0 0 0 / .25); }
+#folha::backdrop { background: rgb(10 16 12 / .45); }
+#folha .alca { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: 10px auto 0; }
+#folha .dentro { padding: 12px max(20px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px)); display: grid; gap: 16px; }
+#folha h2 { font-size: 1.35rem; }
+@media (min-width: 700px) { #folha { margin: auto; max-width: 600px; border-radius: 22px; } #folha .alca { display: none; } }
+.campos { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 14px; }
+.campos .largo { grid-column: 1 / -1; }
+label.campo, fieldset.campo { display: grid; gap: 6px; font-size: .85rem; color: var(--muted); border: 0; margin: 0; padding: 0; min-width: 0; }
+fieldset.campo legend { padding: 0; margin-bottom: 6px; }
+.campo input, .campo select, .campo textarea { font: inherit; font-size: 1rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; width: 100%; min-height: 46px; }
+.campo textarea { resize: vertical; min-height: 70px; }
+.opcoes { display: flex; gap: 4px; padding: 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; }
+.opcoes label { flex: 1; position: relative; }
+.opcoes input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; min-height: 0; }
+.opcoes span { display: block; text-align: center; padding: 8px 6px; border-radius: 9px; color: var(--muted); font-size: .95rem; }
+.opcoes input:checked + span { background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: var(--sombra); }
+.opcoes input:focus-visible + span { outline: 2px solid var(--accent); }
+.escolha { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.escolha button { text-align: left; padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; display: grid; gap: 2px; }
+.escolha button b { font-family: var(--display); }
+.escolha button span { font-size: .8rem; color: var(--muted); }
+
+#aviso { position: fixed; left: 50%; transform: translateX(-50%); z-index: 50; bottom: calc(var(--nav-h) + 84px + env(safe-area-inset-bottom, 0px));
+  background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 12px; max-width: calc(100% - 32px); box-shadow: 0 6px 20px rgb(0 0 0 / .25); }
+#aviso.erro { background: var(--bad); color: var(--surface); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-inicio" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v8.5a1.5 1.5 0 0 1-1.5 1.5H15v-6H9v6H4.5A1.5 1.5 0 0 1 3 19.5z"/></symbol>
+  <symbol id="i-tarefas" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12.5l2.5 2.5 4.5-5.5"/></symbol>
+  <symbol id="i-rebanho" viewBox="0 0 24 24"><circle cx="6.5" cy="10" r="1.7"/><circle cx="10" cy="6" r="1.7"/><circle cx="14" cy="6" r="1.7"/><circle cx="17.5" cy="10" r="1.7"/><path d="M12 11c-3 0-5.2 3.6-5.2 6 0 1.6 1.3 2.4 2.7 2.1 1-.2 1.7-.7 2.5-.7s1.5.5 2.5.7c1.4.3 2.7-.5 2.7-2.1 0-2.4-2.2-6-5.2-6z"/></symbol>
+  <symbol id="i-roca" viewBox="0 0 24 24"><path d="M12 20v-8"/><path d="M12 12c0-4-3-6.5-7-6.5 0 4 3 6.5 7 6.5z"/><path d="M12 10c0-3.5 2.6-5.8 6.5-5.8 0 3.5-2.6 5.8-6.5 5.8z"/><path d="M5 20h14"/></symbol>
+  <symbol id="i-gestao" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></symbol>
+  <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-busca" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+</svg>
+
+<header id="topo"><div class="gutter"><div><h1 id="titulo">Início</h1><p id="subtitulo"></p></div><span id="modo">Carregando…</span></div></header>
+<nav id="abas" aria-label="Seções"></nav>
+<main><div id="conteudo" class="gutter"></div></main>
+<button id="fab" type="button" aria-label="Adicionar"><svg class="i"><use href="#i-mais"/></svg><span id="fab-txt">Registrar</span></button>
+<dialog id="folha" aria-labelledby="folha-titulo"><div class="alca"></div><div class="dentro" id="folha-corpo"></div></dialog>
+<div id="aviso" role="status" aria-live="polite" hidden></div>
+
+<script id="logica">
+// Regras do sistema, sem tela: testadas por app/teste.mjs.
+// Campo: [coluna, rótulo, tipo]; tipo "a|b|c" vira lista de opções. O primeiro campo é obrigatório.
+const MODS = {
+  tarefas: { nome: "Tarefas", novo: "Nova tarefa", dica: "O que fazer e quando", filtro: "status", prazo: "data", campos: [
+    ["titulo", "Tarefa", "text"], ["data", "Prazo", "date"], ["responsavel", "Responsável", "text"], ["status", "Status", "Pendente|Feita"]] },
+  animais: { nome: "Animais", novo: "Novo animal", dica: "Brinco, espécie, lote", filtro: "especie", campos: [
+    ["identificacao", "Brinco/Nome", "text"], ["especie", "Espécie", "Bovino|Suíno|Caprino|Ovino|Equino|Aves|Outro"],
+    ["sexo", "Sexo", "Fêmea|Macho"], ["nascimento", "Nascimento", "date"], ["peso", "Peso (kg)", "number"],
+    ["lote", "Lote/Pasto", "text"], ["situacao", "Situação", "Ativo|Vendido|Morto"], ["obs", "Observações", "text"]] },
+  sanidade: { nome: "Sanidade", novo: "Manejo sanitário", dica: "Vacina, vermífugo, parto", filtro: "tipo", prazo: "proxima", campos: [
+    ["animal", "Animal/Lote", "text"], ["tipo", "Manejo", "Vacina|Vermífugo|Medicamento|Pesagem|Inseminação|Parto|Outro"],
+    ["data", "Data", "date"], ["produto", "Produto/Dose", "text"], ["proxima", "Próxima aplicação", "date"], ["obs", "Observações", "text"]] },
+  lavouras: { nome: "Lavouras", novo: "Nova lavoura", dica: "Cultura, talhão, colheita", filtro: "situacao", prazo: "colheita", campos: [
+    ["cultura", "Cultura", "text"], ["talhao", "Talhão/Canteiro", "text"], ["area", "Área (ha)", "number"],
+    ["plantio", "Plantio", "date"], ["colheita", "Colheita prevista", "date"],
+    ["situacao", "Situação", "Planejada|Plantada|Colhida|Perdida"], ["obs", "Observações", "text"]] },
+  producao: { nome: "Produção", novo: "Registrar produção", dica: "Leite, ovos, colheita", filtro: "destino", campos: [
+    ["produto", "Produto", "text"], ["data", "Data", "date"], ["quantidade", "Quantidade", "number"],
+    ["unidade", "Unidade", "L|kg|dúzia|saca|caixa|un"], ["destino", "Destino", "Venda|Consumo|Estoque|Trato animal"], ["obs", "Observações", "text"]] },
+  estoque: { nome: "Estoque", novo: "Item de estoque", dica: "Ração, adubo, remédio", filtro: "categoria", prazo: "validade", campos: [
+    ["item", "Item", "text"], ["categoria", "Categoria", "Ração|Adubo|Semente|Defensivo|Medicamento|Combustível|Ferramenta|Outro"],
+    ["quantidade", "Quantidade", "number"], ["unidade", "Unidade", "kg|L|saco|un|dose"], ["minimo", "Estoque mínimo", "number"], ["validade", "Validade", "date"]] },
+  maquinas: { nome: "Máquinas", novo: "Nova máquina", dica: "Trator, bomba, manutenção", filtro: "tipo", prazo: "proxima", campos: [
+    ["equipamento", "Equipamento", "text"], ["tipo", "Tipo", "Trator|Implemento|Veículo|Bomba/Irrigação|Gerador|Roçadeira|Outro"],
+    ["horimetro", "Horímetro/Km", "number"], ["ultima", "Última manutenção", "date"], ["proxima", "Próxima manutenção", "date"], ["obs", "Observações", "text"]] },
+  financeiro: { nome: "Finanças", novo: "Lançamento", dica: "Receita ou despesa", filtro: "tipo", campos: [
+    ["descricao", "Descrição", "text"], ["tipo", "Tipo", "Despesa|Receita"],
+    ["categoria", "Categoria", "Vendas|Animais|Lavoura|Insumos|Mão de obra|Máquinas|Energia/Água|Impostos|Outro"],
+    ["data", "Data", "date"], ["valor", "Valor (R$)", "number"]] },
+};
+
+const iso = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const meioDia = s => new Date(s + "T12:00:00");
+const somarDias = (h, n) => { const d = meioDia(h); d.setDate(d.getDate() + n); return iso(d); };
+const diasAte = (d, h) => Math.round((meioDia(d) - meioDia(h)) / 864e5);
+const fmtNum = v => v == null ? "" : Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+const reais = v => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const br = d => d ? d.split("-").reverse().join("/") : "";
+const baixo = r => r.quantidade != null && r.minimo != null && r.quantidade <= r.minimo;
+
+function relativo(d, h) {
+  const n = diasAte(d, h);
+  return n === 0 ? "hoje" : n === 1 ? "amanhã" : n === -1 ? "ontem" : n > 1 ? `em ${n} dias` : `há ${-n} dias`;
+}
+
+// Aceita "12,5", "1.234,56" e "12.5".
+function lerNumero(txt) {
+  let v = String(txt ?? "").trim();
+  if (v.includes(",")) v = v.replace(/\./g, "").replace(",", ".");
+  return v === "" ? NaN : Number(v);
+}
+
+// Converte o que veio do formulário (ou de um backup) num registro limpo, ou devolve {erro}.
+function validar(mod, entrada) {
+  const rec = {};
+  for (const [c, rot, t] of MODS[mod].campos) {
+    let v = String(entrada[c] ?? "").trim();
+    if (!v) { rec[c] = null; continue; }
+    if (t === "number") {
+      v = lerNumero(v);
+      if (!Number.isFinite(v)) return { erro: `${rot}: digite um número, por exemplo 12,5` };
+    } else if (t === "date" && !/^\d{4}-\d{2}-\d{2}$/.test(v)) return { erro: `${rot}: data inválida` };
+    else if (t.includes("|") && !t.split("|").includes(v)) return { erro: `${rot}: escolha uma das opções` };
+    rec[c] = v;
+  }
+  const [c0, r0] = MODS[mod].campos[0];
+  if (rec[c0] == null) return { erro: `Preencha o campo “${r0}”.` };
+  return { rec };
+}
+
+function resumo(dados, h) {
+  const mes = h.slice(0, 7), d7 = somarDias(h, 7), d30 = somarDias(h, 30);
+  const meses = [];
+  for (let i = 5; i >= 0; i--) { const d = meioDia(mes + "-15"); d.setMonth(d.getMonth() - i); meses.push({ mes: iso(d).slice(0, 7), rec: 0, desp: 0 }); }
+  let geral = 0;
+  const categorias = {};
+  for (const r of dados.financeiro) {
+    const v = r.valor || 0, receita = r.tipo === "Receita";
+    geral += receita ? v : -v;
+    const m = meses.find(x => x.mes === r.data?.slice(0, 7));
+    if (m) m[receita ? "rec" : "desp"] += v;
+    if (!receita && r.data?.startsWith(mes)) categorias[r.categoria || "Outro"] = (categorias[r.categoria || "Outro"] || 0) + v;
+  }
+  const rebanho = {};
+  for (const r of dados.animais) if ((r.situacao || "Ativo") === "Ativo") rebanho[r.especie || "Outro"] = (rebanho[r.especie || "Outro"] || 0) + 1;
+  const producao = {};
+  for (const r of dados.producao) if (r.data?.startsWith(mes)) {
+    const k = `${r.produto}|${r.unidade || ""}`; producao[k] = (producao[k] || 0) + (r.quantidade || 0);
+  }
+  const ate = (d, lim) => d && d <= lim;
+  const alertas = [
+    ...dados.tarefas.filter(r => r.status !== "Feita" && ate(r.data, d7))
+      .map(r => ({ mod: "tarefas", id: r.id, texto: r.titulo + (r.responsavel ? ` · ${r.responsavel}` : ""), data: r.data })),
+    ...dados.sanidade.filter(r => ate(r.proxima, d7))
+      .map(r => ({ mod: "sanidade", id: r.id, texto: `${r.tipo || "Manejo"}${r.produto ? ` (${r.produto})` : ""} · ${r.animal}`, data: r.proxima })),
+    ...dados.maquinas.filter(r => ate(r.proxima, d7)).map(r => ({ mod: "maquinas", id: r.id, texto: `Manutenção · ${r.equipamento}`, data: r.proxima })),
+    ...dados.lavouras.filter(r => r.situacao === "Plantada" && ate(r.colheita, d30))
+      .map(r => ({ mod: "lavouras", id: r.id, texto: `Colheita · ${r.cultura}${r.talhao ? ` (${r.talhao})` : ""}`, data: r.colheita })),
+    ...dados.estoque.filter(r => ate(r.validade, d30)).map(r => ({ mod: "estoque", id: r.id, texto: `Vence · ${r.item}`, data: r.validade })),
+    ...dados.estoque.filter(baixo).map(r => ({ mod: "estoque", id: r.id, data: null,
+      texto: `Estoque baixo · ${r.item}: ${fmtNum(r.quantidade)} ${r.unidade || ""} (mín. ${fmtNum(r.minimo)})` })),
+  ].sort((a, b) => (a.data || "9999").localeCompare(b.data || "9999"));
+  const pendentes = dados.tarefas.filter(r => r.status !== "Feita");
+  return { mes, meses, atual: meses[5], geral, categorias, rebanho, producao, alertas,
+    pendentes: pendentes.length, atrasadas: pendentes.filter(r => r.data && r.data < h).length };
+}
+</script>
+
+<script>
+const GRUPOS = [
+  { id: "inicio", nome: "Início", icone: "inicio" },
+  { id: "tarefas", nome: "Tarefas", icone: "tarefas", mods: ["tarefas"] },
+  { id: "rebanho", nome: "Rebanho", icone: "rebanho", mods: ["animais", "sanidade"] },
+  { id: "roca", nome: "Roça", icone: "roca", mods: ["lavouras", "producao"] },
+  { id: "gestao", nome: "Gestão", icone: "gestao", mods: ["financeiro", "estoque", "maquinas", "dados"] },
+];
+const grupoDe = mod => GRUPOS.find(g => g.mods?.includes(mod));
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const hoje = () => iso(new Date());
+const ic = (n, cls = "i") => `<svg class="${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+
+const dados = {}, pronto = new Set(), ocupado = new Set();
+for (const m in MODS) dados[m] = [];
+const estado = { grupo: "inicio", seg: {}, busca: "", filtro: null, mesSel: null };
+let store = null, modo = "carregando", downloads = null, instalar = null;
+
+let tAviso;
+function aviso(msg, ok) {
+  const a = $("#aviso");
+  a.textContent = msg; a.className = ok ? "" : "erro"; a.hidden = false;
+  clearTimeout(tAviso); tAviso = setTimeout(() => a.hidden = true, 3500);
+}
+const semId = ({ id, ...resto }) => resto;
+const segAtual = () => { const g = GRUPOS.find(g => g.id === estado.grupo); return g.mods ? (estado.seg[g.id] || g.mods[0]) : null; };
+
+/* ---------- Navegação ---------- */
+function irPara(grupo, mod) {
+  estado.grupo = grupo; estado.busca = ""; estado.filtro = null;
+  if (mod) estado.seg[grupo] = mod;
+  mostrar(); window.scrollTo(0, 0);
+}
+
+function mostrar() {
+  const g = GRUPOS.find(g => g.id === estado.grupo), mod = segAtual();
+  document.querySelectorAll("#abas button").forEach(b => b.dataset.grupo === g.id ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  $("#titulo").textContent = g.id === "inicio" ? saudacao() : g.nome;
+  $("#fab").hidden = mod === "dados";
+  $("#fab-txt").textContent = mod ? MODS[mod].novo : "Registrar";
+  let html = "";
+  if (g.mods?.length > 1) html += `<div class="segmentos" role="group" aria-label="Seções de ${esc(g.nome)}">${g.mods.map(m =>
+    `<button type="button" data-seg="${m}" aria-pressed="${m === mod}">${m === "dados" ? "Dados" : esc(MODS[m].nome)}</button>`).join("")}</div>`;
+  if (mod && mod !== "dados") html += `<label class="busca">${ic("busca")}<input id="busca" type="search" placeholder="Buscar em ${esc(MODS[mod].nome.toLowerCase())}" aria-label="Buscar" value="${esc(estado.busca)}"></label>`;
+  $("#conteudo").innerHTML = html + `<div id="corpo" style="display:grid;gap:18px;min-width:0"></div>`;
+  atualizar();
+}
+
+function atualizar() {
+  const mod = segAtual(), h = hoje();
+  $("#subtitulo").textContent = estado.grupo === "inicio"
+    ? new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })
+    : mod === "dados" ? "Cópia de segurança e instalação" : `${dados[mod].length} registro${dados[mod].length === 1 ? "" : "s"}`;
+  $("#corpo").innerHTML = estado.grupo === "inicio" ? inicio(h) : mod === "dados" ? telaDados() : telaModulo(mod, h);
+}
+
+function saudacao() {
+  const hr = new Date().getHours();
+  return hr < 12 ? "Bom dia" : hr < 18 ? "Boa tarde" : "Boa noite";
+}
+
+/* ---------- Início ---------- */
+function inicio(h) {
+  const r = resumo(dados, h);
+  const saldoMes = r.atual.rec - r.atual.desp;
+  const animais = Object.values(r.rebanho).reduce((a, b) => a + b, 0);
+  const temExemplo = Object.values(dados).some(l => l.some(x => x.exemplo));
+  const nota = temExemplo ? `<div class="nota"><span>Registros com a marca <span class="chip ex">exemplo</span> mostram como o app funciona.</span>
+    <button class="btn" data-acao="limpar">Apagar exemplos</button></div>` : "";
+  const kpi = (grupo, mod, rot, val, sub, ruim) => `<button class="kpi" data-ir="${grupo}" data-mod="${mod}">
+    <span class="rot">${rot}</span><span class="val">${val}</span><span class="sub${ruim ? " ruim" : ""}">${sub}</span></button>`;
+  const kpis = `<div class="kpis">
+    ${kpi("gestao", "financeiro", "Saldo do mês", reais(saldoMes), `${reais(r.atual.rec)} entraram`)}
+    ${kpi("rebanho", "animais", "Rebanho ativo", animais, `${Object.keys(r.rebanho).length} espécie${Object.keys(r.rebanho).length === 1 ? "" : "s"}`)}
+    ${kpi("tarefas", "tarefas", "Tarefas pendentes", r.pendentes, r.atrasadas ? `${r.atrasadas} atrasada${r.atrasadas === 1 ? "" : "s"}` : "nenhuma atrasada", r.atrasadas)}
+    ${kpi("gestao", "estoque", "Itens com estoque baixo", dados.estoque.filter(baixo).length, `de ${dados.estoque.length} no estoque`)}
+  </div>`;
+
+  const faixas = [["Atrasados", a => a.data && a.data < h, "atrasado"], ["Próximos 7 dias", a => a.data && a.data >= h && a.data <= somarDias(h, 7), "semana"],
+    ["Mais adiante", a => a.data && a.data > somarDias(h, 7), "depois"], ["Estoque", a => !a.data, ""]];
+  const blocos = faixas.map(([rot, f, cls]) => {
+    const itens = r.alertas.filter(f);
+    return itens.length ? `<li><div class="grupo-rot">${rot}</div><ul class="lista">${itens.map(a => `<li>
+      <button class="alerta" data-abrir="${a.mod}:${esc(a.id)}"><span class="marca ${cls}"></span>
+      <span class="txt">${esc(a.texto)}<span class="mod">${esc(MODS[a.mod].nome)}</span></span>
+      ${a.data ? `<span class="quando ${cls}">${relativo(a.data, h)}<br>${br(a.data)}</span>` : ""}</button></li>`).join("")}</ul></li>` : "";
+  }).join("");
+  const agenda = `<section class="secao"><div class="secao-cab"><h2>Agenda e alertas</h2><span class="leve">${r.alertas.length}</span></div>
+    <div class="painel">${blocos ? `<ul class="lista">${blocos}</ul>` : `<p class="vazio">Tudo em dia. Nada vencendo nos próximos dias.</p>`}</div></section>`;
+
+  const prod = Object.entries(r.producao);
+  const especies = Object.entries(r.rebanho).sort((a, b) => b[1] - a[1]);
+  const extras = `<div class="duas">
+    <section class="secao"><h2>Produção do mês</h2><div class="painel pad">${prod.length ? prod.map(([k, s]) => { const [p, u] = k.split("|");
+      return `<div class="linha-v"><span>${esc(p)}</span><b>${fmtNum(s)} ${esc(u)}</b></div>`; }).join("") : `<p class="vazio">Nada registrado neste mês.</p>`}</div></section>
+    <section class="secao"><h2>Rebanho por espécie</h2><div class="painel pad">${especies.length ? especies.map(([e, n]) =>
+      `<div class="linha-v"><span>${esc(e)}</span><b>${n}</b></div>`).join("") : `<p class="vazio">Nenhum animal ativo.</p>`}</div></section>
+  </div>`;
+  return nota + kpis + agenda + graficoFinanceiro(r) + extras;
+}
+
+function graficoFinanceiro(r) {
+  const W = 360, H = 190, E = 46, T = 10, B = 24, larg = (W - E) / 6, bw = Math.min(16, larg / 2 - 6);
+  const max = Math.max(...r.meses.flatMap(m => [m.rec, m.desp]), 0);
+  const bruto = (max || 1000) / 3, p10 = 10 ** Math.floor(Math.log10(bruto)), n = bruto / p10;
+  const passo = (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p10, topo = passo * Math.ceil((max || 1000) / passo);
+  const y = v => T + (H - T - B) * (1 - v / topo);
+  const curto = v => v >= 1000 ? `${fmtNum(v / 1000)} mil` : fmtNum(v);
+  const barra = (x, v) => { const hh = H - B - y(v); if (hh <= 0) return ""; const rr = Math.min(4, hh, bw / 2), yy = y(v);
+    return `M${x},${H - B}V${yy + rr}Q${x},${yy} ${x + rr},${yy}H${x + bw - rr}Q${x + bw},${yy} ${x + bw},${yy + rr}V${H - B}Z`; };
+  const nomeMes = m => meioDia(m + "-15").toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
+  let s = "";
+  for (let v = 0; v <= topo; v += passo) s += `<line class="grade-l" x1="${E}" x2="${W}" y1="${y(v)}" y2="${y(v)}"/><text x="${E - 6}" y="${y(v) + 4}" text-anchor="end">${curto(v)}</text>`;
+  const sel = estado.mesSel || r.atual.mes;
+  r.meses.forEach((m, i) => {
+    const x0 = E + i * larg, cx = x0 + larg / 2;
+    s += `<rect class="hit${m.mes === sel ? " sel" : ""}" x="${x0 + 2}" y="${T}" width="${larg - 4}" height="${H - T - B}" rx="6" data-mes="${m.mes}" tabindex="0" role="button" aria-label="${nomeMes(m.mes)}: receitas ${reais(m.rec)}, despesas ${reais(m.desp)}"/>`;
+    s += `<path d="${barra(cx - bw - 1, m.rec)}" fill="var(--serie-rec)" pointer-events="none"/><path d="${barra(cx + 1, m.desp)}" fill="var(--serie-desp)" pointer-events="none"/>`;
+    s += `<text x="${cx}" y="${H - 6}" text-anchor="middle">${nomeMes(m.mes)}</text>`;
+  });
+  const m = r.meses.find(x => x.mes === sel) || r.atual;
+  const rotMes = meioDia(m.mes + "-15").toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  return `<section class="secao"><div class="secao-cab"><h2>Receitas e despesas</h2><span class="leve">6 meses</span></div>
+    <div class="painel pad grafico" style="display:grid;gap:10px">
+      <div class="legenda"><span><i style="background:var(--serie-rec)"></i>Receitas</span><span><i style="background:var(--serie-desp)"></i>Despesas</span></div>
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Receitas e despesas dos últimos 6 meses">${s}</svg>
+      <div class="leitura"><b>${esc(rotMes)}</b> · receitas ${reais(m.rec)} · despesas ${reais(m.desp)} · saldo <b>${reais(m.rec - m.desp)}</b></div>
+      <span class="leve" style="font-size:.8rem">Toque num mês para ver os valores. Saldo acumulado: ${reais(r.geral)}</span>
+    </div></section>`;
+}
+
+/* ---------- Telas de módulo ---------- */
+function telaModulo(mod, h) {
+  const M = MODS[mod], campoFiltro = M.campos.find(([c]) => c === M.filtro);
+  const termo = estado.busca.trim().toLowerCase();
+  let regs = dados[mod].filter(r => !termo || M.campos.some(([c]) => String(r[c] ?? "").toLowerCase().includes(termo)));
+  const contagem = {};
+  regs.forEach(r => { if (r[M.filtro]) contagem[r[M.filtro]] = (contagem[r[M.filtro]] || 0) + 1; });
+  const filtros = `<div class="filtros" role="group" aria-label="Filtrar por ${esc(campoFiltro[1])}">
+    <button type="button" data-filtro="" aria-pressed="${!estado.filtro}">Todos <small>${regs.length}</small></button>
+    ${Object.entries(contagem).sort((a, b) => b[1] - a[1]).map(([v, n]) =>
+      `<button type="button" data-filtro="${esc(v)}" aria-pressed="${estado.filtro === v}">${esc(v)} <small>${n}</small></button>`).join("")}</div>`;
+  if (estado.filtro) regs = regs.filter(r => r[M.filtro] === estado.filtro);
+  regs.sort(mod === "tarefas"
+    ? (a, b) => (a.status === "Feita") - (b.status === "Feita") || (a.data || "9999").localeCompare(b.data || "9999")
+    : (a, b) => (b.criado || 0) - (a.criado || 0));
+  const extra = mod === "financeiro" ? resumoFinanceiro(h) : "";
+  const vazio = !pronto.has(mod) ? "Carregando…" : dados[mod].length ? "Nada encontrado com esse filtro."
+    : `Nenhum registro ainda. Toque em “${M.novo}” para começar.`;
+  return `${extra}${dados[mod].length ? filtros : ""}<div class="painel">${regs.length
+    ? `<ul class="lista">${regs.map(r => `<li>${item(mod, r, h)}</li>`).join("")}</ul>` : `<p class="vazio">${vazio}</p>`}</div>`;
+}
+
+function valorCampo(r, c, rot, t) {
+  if (t === "date") return br(r[c]);
+  const un = rot.match(/\((.+)\)$/)?.[1];
+  if (t === "number") return c === "valor" ? reais(r[c]) : `${fmtNum(r[c])}${c === "quantidade" && r.unidade ? ` ${esc(r.unidade)}` : un ? ` ${esc(un)}` : ""}`;
+  return esc(r[c]);
+}
+
+function item(mod, r, h) {
+  const M = MODS[mod], id = esc(r.id), feito = mod === "tarefas" && r.status === "Feita";
+  const titulo = esc(r[M.campos[0][0]]);
+  const chips = M.campos.filter(([c, , t]) => t.includes("|") && r[c] && c !== "unidade" && !(mod === "tarefas" && c === "status"))
+    .map(([c]) => `<span class="chip">${esc(r[c])}</span>`);
+  if (M.prazo && r[M.prazo]) {
+    const d = r[M.prazo], cls = feito ? "" : d < h ? "atrasado" : d <= somarDias(h, 7) ? "semana" : "";
+    const rot = M.campos.find(([c]) => c === M.prazo)[1];
+    chips.unshift(`<span class="chip prazo ${cls}">${esc(rot)} ${br(d)} · ${relativo(d, h)}</span>`);
+  }
+  if (r.exemplo) chips.push(`<span class="chip ex">exemplo</span>`);
+  const pular = new Set([M.campos[0][0], M.prazo, "unidade", ...(mod === "financeiro" ? ["valor"] : []), ...(mod === "estoque" ? ["quantidade"] : [])]);
+  const meta = M.campos.filter(([c, , t]) => !pular.has(c) && !t.includes("|") && r[c] != null && r[c] !== "")
+    .map(([c, rot, t]) => `<span><span class="rot">${esc(rot.replace(/ \(.+\)$/, ""))}</span> ${valorCampo(r, c, rot, t)}</span>`).join("");
+  const lead = mod === "tarefas" ? `<button class="check" role="checkbox" aria-checked="${feito}" aria-label="Marcar “${titulo}” como feita" data-acao="feito" data-id="${id}">${ic("ok", "")}</button>` : "";
+  const trail = mod === "financeiro" ? `<span class="valor ${r.tipo === "Receita" ? "rec" : "desp"}">${r.tipo === "Receita" ? "+" : "−"} ${reais(r.valor)}</span>`
+    : mod === "estoque" ? `<div class="passo${baixo(r) ? " baixo" : ""}"><button data-acao="menos" data-id="${id}" aria-label="Diminuir ${titulo}">−</button>
+      <span>${fmtNum(r.quantidade ?? 0)}<small>${esc(r.unidade || "")}${r.minimo != null ? ` · mín ${fmtNum(r.minimo)}` : ""}</small></span>
+      <button data-acao="mais" data-id="${id}" aria-label="Aumentar ${titulo}">+</button></div>` : "";
+  return `<div class="item${feito ? " feito" : ""}">${lead}<button class="abrir" data-abrir="${mod}:${id}"><h3>${titulo}</h3>
+    ${chips.length ? `<span class="chips">${chips.join("")}</span>` : ""}${meta ? `<span class="meta">${meta}</span>` : ""}</button>${trail}</div>`;
+}
+
+function resumoFinanceiro(h) {
+  const r = resumo(dados, h), cats = Object.entries(r.categorias).sort((a, b) => b[1] - a[1]), maior = cats[0]?.[1] || 1;
+  const mesNome = meioDia(r.mes + "-15").toLocaleDateString("pt-BR", { month: "long" });
+  return `<div class="kpis">
+    <div class="kpi" style="cursor:default"><span class="rot">Receitas em ${mesNome}</span><span class="val">${reais(r.atual.rec)}</span></div>
+    <div class="kpi" style="cursor:default"><span class="rot">Despesas em ${mesNome}</span><span class="val">${reais(r.atual.desp)}</span></div>
+    <div class="kpi" style="cursor:default"><span class="rot">Saldo do mês</span><span class="val">${reais(r.atual.rec - r.atual.desp)}</span></div>
+    <div class="kpi" style="cursor:default"><span class="rot">Saldo acumulado</span><span class="val">${reais(r.geral)}</span></div></div>
+    ${cats.length ? `<section class="secao"><h2>Para onde foi o dinheiro em ${mesNome}</h2><div class="painel pad barras">${cats.map(([c, v]) =>
+      `<div class="barra-h"><div class="linha"><span>${esc(c)}</span><b class="num">${reais(v)}</b></div><div class="trilho"><span style="width:${(v / maior * 100).toFixed(1)}%"></span></div></div>`).join("")}</div></section>` : ""}`;
+}
+
+/* ---------- Backup e instalação ---------- */
+function telaDados() {
+  const total = Object.values(dados).reduce((s, l) => s + l.length, 0);
+  const onde = modo === "nuvem" ? "Seus registros ficam salvos na sua conta Claude e aparecem em qualquer aparelho em que você abrir esta página."
+    : "Seus registros ficam salvos só neste aparelho. Faça uma cópia de segurança de vez em quando: se o app for apagado, os dados vão junto.";
+  return `<section class="secao"><h2>Onde ficam os dados</h2><div class="painel pad" style="display:grid;gap:12px">
+      <p style="margin:0">${onde}</p><p class="leve" style="margin:0">${total} registros no total.</p>
+      <div class="acoes"><button class="btn prim" data-acao="exportar">Baixar cópia de segurança</button>
+      <label class="btn" style="display:inline-grid;place-items:center">Restaurar de uma cópia<input id="importar" type="file" accept=".json,application/json" hidden></label></div>
+      <p class="leve" style="margin:0;font-size:.85rem">Restaurar junta os registros da cópia com os que já estão aqui. Use para levar seus dados do celular para o computador e vice-versa.</p>
+    </div></section>
+    ${modo === "local" ? `<section class="secao"><h2>Instalar no celular</h2><div class="painel pad" style="display:grid;gap:10px">
+      ${instalar ? `<div><button class="btn prim" data-acao="instalar">Instalar o app</button></div>` : ""}
+      <p style="margin:0"><b>Android (Chrome):</b> menu ⋮ → <i>Instalar app</i> ou <i>Adicionar à tela inicial</i>.</p>
+      <p style="margin:0"><b>iPhone (Safari):</b> botão Compartilhar → <i>Adicionar à Tela de Início</i>.</p>
+      <p class="leve" style="margin:0;font-size:.85rem">Depois de instalado, o app abre em tela cheia e funciona sem internet.</p></div></section>` : ""}`;
+}
+
+async function exportar() {
+  const json = JSON.stringify({ app: "gestao-sitio", versao: 1, exportado: new Date().toISOString(), dados }, null, 1);
+  const nome = `sitio-backup-${hoje()}.json`;
+  if (downloads) {
+    try { const r = await downloads.save({ filename: nome, data: json }); if (r.status === "saved") aviso("Cópia salva.", true); }
+    catch (e) { if (e?.code !== "declined") aviso("Não foi possível salvar a cópia."); }
+    return;
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+  a.download = nome; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+async function importar(arquivo) {
+  let conteudo;
+  try { conteudo = JSON.parse(await arquivo.text()); } catch { return aviso("Esse arquivo não é uma cópia do app."); }
+  if (conteudo?.app !== "gestao-sitio" || typeof conteudo.dados !== "object") return aviso("Esse arquivo não é uma cópia do app.");
+  let ok = 0, ruins = 0;
+  for (const m in MODS) for (const bruto of Array.isArray(conteudo.dados[m]) ? conteudo.dados[m] : []) {
+    const { rec } = validar(m, bruto || {});
+    const id = String(bruto?.id ?? "");
+    if (!rec || !/^[A-Za-z0-9_-]{1,64}$/.test(id)) { ruins++; continue; }
+    rec.criado = Number(bruto.criado) || Date.now();
+    if (bruto.exemplo === true) rec.exemplo = true;
+    try { await store.salvar(m, id, rec); ok++; } catch { ruins++; }
+  }
+  aviso(`${ok} registros restaurados${ruins ? `, ${ruins} ignorados` : ""}.`, !ruins);
+  atualizar();
+}
+
+/* ---------- Folha de formulário ---------- */
+let folhaAtual = null, tArmar;
+function abrirFolha(mod, id) {
+  const M = MODS[mod], atual = id && dados[mod].find(r => r.id === id);
+  if (id && !atual) return;
+  folhaAtual = { mod, id: atual ? id : null };
+  const campos = M.campos.map(([c, rot, t], i) => {
+    const v = atual ? atual[c] ?? "" : (c === "data" ? hoje() : "");
+    const fid = `f-${c}`;
+    if (t.includes("|")) {
+      const ops = t.split("|");
+      if (ops.length <= 3) return `<fieldset class="campo"><legend>${esc(rot)}</legend><div class="opcoes">${ops.map((o, j) =>
+        `<label><input type="radio" name="${c}" value="${esc(o)}"${(v ? o === v : j === 0) ? " checked" : ""}><span>${esc(o)}</span></label>`).join("")}</div></fieldset>`;
+      return `<label class="campo" for="${fid}">${esc(rot)}<select id="${fid}" name="${c}">${ops.map(o => `<option${o === v ? " selected" : ""}>${esc(o)}</option>`).join("")}</select></label>`;
+    }
+    if (c === "obs") return `<label class="campo largo" for="${fid}">${esc(rot)}<textarea id="${fid}" name="${c}" rows="2">${esc(v)}</textarea></label>`;
+    const val = t === "number" && v !== "" ? String(v).replace(".", ",") : v;
+    const attrs = t === "number" ? `inputmode="decimal" autocomplete="off"` : `type="${t}"`;
+    return `<label class="campo${i === 0 ? " largo" : ""}" for="${fid}">${esc(rot)}<input id="${fid}" name="${c}" ${attrs} value="${esc(val)}"${i === 0 ? " required" : ""}></label>`;
+  }).join("");
+  $("#folha-corpo").innerHTML = `<h2 id="folha-titulo">${atual ? `Editar · ${esc(M.nome)}` : esc(M.novo)}</h2>
+    <form id="cadastro" novalidate><div class="campos">${campos}</div>
+    <div class="acoes" style="margin-top:18px"><button class="btn prim" type="submit">${atual ? "Salvar alterações" : "Adicionar"}</button>
+    <button class="btn" type="button" data-acao="fechar">Cancelar</button>
+    ${atual ? `<button class="btn perigo" type="button" data-acao="excluir" style="margin-left:auto">Excluir</button>` : ""}</div></form>`;
+  mostrarFolha();
+  if (!atual) setTimeout(() => $("#folha input")?.focus(), 50);
+}
+
+function abrirEscolha() {
+  folhaAtual = null;
+  $("#folha-corpo").innerHTML = `<h2 id="folha-titulo">O que você quer registrar?</h2><div class="escolha">${Object.entries(MODS).map(([m, M]) =>
+    `<button type="button" data-novo="${m}"><b>${esc(M.novo)}</b><span>${esc(M.dica)}</span></button>`).join("")}</div>
+    <div class="acoes"><button class="btn" type="button" data-acao="fechar">Cancelar</button></div>`;
+  mostrarFolha();
+}
+
+function mostrarFolha() { const f = $("#folha"); if (!f.open) f.showModal(); }
+function fecharFolha() { $("#folha").close(); folhaAtual = null; }
+
+/* ---------- Eventos ---------- */
+document.addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!folhaAtual) return;
+  const { mod, id } = folhaAtual, entrada = Object.fromEntries(new FormData(e.target));
+  const { rec, erro } = validar(mod, entrada);
+  if (erro) return aviso(erro);
+  const atual = id && dados[mod].find(r => r.id === id);
+  rec.criado = atual?.criado ?? Date.now();
+  const botao = e.target.querySelector("[type=submit]");
+  botao.disabled = true;
+  try {
+    await store.salvar(mod, id, rec);
+    fecharFolha(); aviso(id ? "Alterações salvas." : "Registro adicionado.", true);
+  } catch (err) {
+    botao.disabled = false;
+    aviso(err?.code === "quota_exceeded" ? "Limite de registros atingido. Apague registros antigos para continuar." : "Não foi possível salvar. Tente de novo.");
+  }
+});
+
+document.addEventListener("click", async e => {
+  const b = e.target.closest("button, rect.hit");
+  if (!b) return;
+  const d = b.dataset;
+  if (d.grupo) return irPara(d.grupo);
+  if (d.ir) return irPara(d.ir, d.mod);
+  if (d.seg) { estado.seg[estado.grupo] = d.seg; estado.busca = ""; estado.filtro = null; return mostrar(); }
+  if (d.filtro !== undefined) { estado.filtro = d.filtro || null; return atualizar(); }
+  if (d.mes) { estado.mesSel = d.mes; return atualizar(); }
+  if (d.abrir) { const [m, id] = d.abrir.split(":"); return abrirFolha(m, id); }
+  if (d.novo) return abrirFolha(d.novo);
+  if (b.id === "fab") { const mod = segAtual(); return mod ? abrirFolha(mod) : abrirEscolha(); }
+  switch (d.acao) {
+    case "fechar": return fecharFolha();
+    case "excluir": {
+      if (!b.classList.contains("armado")) {
+        b.classList.add("armado"); b.textContent = "Toque de novo para excluir";
+        clearTimeout(tArmar); tArmar = setTimeout(() => { b.classList.remove("armado"); b.textContent = "Excluir"; }, 4000);
+        return;
+      }
+      const { mod, id } = folhaAtual;
+      b.disabled = true;
+      try { await store.excluir(mod, id); fecharFolha(); aviso("Registro excluído.", true); }
+      catch { b.disabled = false; aviso("Não foi possível excluir. Tente de novo."); }
+      return;
+    }
+    case "feito": case "menos": case "mais": {
+      const mod = d.acao === "feito" ? "tarefas" : "estoque", r = dados[mod].find(x => x.id === d.id);
+      if (!r || ocupado.has(r.id)) return;
+      const rec = semId(r);
+      if (d.acao === "feito") rec.status = r.status === "Feita" ? "Pendente" : "Feita";
+      else rec.quantidade = Math.max(0, (r.quantidade || 0) + (d.acao === "mais" ? 1 : -1));
+      ocupado.add(r.id);
+      try { await store.salvar(mod, r.id, rec); } catch { aviso("Não foi possível salvar. Tente de novo."); }
+      finally { ocupado.delete(r.id); }
+      return;
+    }
+    case "limpar": {
+      b.disabled = true;
+      try {
+        for (const m in MODS) for (const r of dados[m].filter(r => r.exemplo)) await store.excluir(m, r.id);
+        aviso("Exemplos apagados.", true);
+      } catch { b.disabled = false; aviso("Não foi possível apagar todos os exemplos. Tente de novo."); }
+      return atualizar();
+    }
+    case "exportar": return exportar();
+    case "instalar": instalar?.prompt(); instalar = null; return atualizar();
+  }
+});
+
+document.addEventListener("keydown", e => {
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches?.("rect.hit")) { e.preventDefault(); estado.mesSel = e.target.dataset.mes; atualizar(); }
+});
+document.addEventListener("input", e => { if (e.target.id === "busca") { estado.busca = e.target.value; atualizar(); } });
+document.addEventListener("change", e => { if (e.target.id === "importar" && e.target.files[0]) importar(e.target.files[0]); });
+$("#folha").addEventListener("click", e => { if (e.target.id === "folha") fecharFolha(); });  // toque fora fecha
+$("#folha").addEventListener("close", () => { folhaAtual = null; });
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); instalar = e; if (segAtual() === "dados") atualizar(); });
+
+/* ---------- Armazenamento ---------- */
+async function iniciar() {
+  $("#abas").innerHTML = GRUPOS.map(g => `<button type="button" data-grupo="${g.id}"><span class="ic">${ic(g.icone)}</span><span>${g.nome}</span></button>`).join("");
+  mostrar();
+  let db = null;
+  try { db = await window.claude?.use("db"); } catch {}
+  if (db) {
+    modo = "nuvem";
+    try { downloads = await window.claude.use("downloads"); } catch {}
+    store = {
+      salvar: (m, id, rec) => id ? db.collection(m).doc(id).set(rec) : db.collection(m).add(rec),
+      excluir: (m, id) => db.collection(m).doc(id).delete(),
+    };
+    for (const m in MODS) db.collection(m).onSnapshot(
+      s => { dados[m] = s.docs.map(doc => ({ ...doc.data(), id: doc.id })); pronto.add(m); atualizar(); },
+      () => aviso("A conexão com os dados caiu. Recarregue a página."));
+  } else {
+    // App instalado ou arquivo aberto direto: guarda só neste aparelho.
+    modo = "local";
+    try { const salvo = JSON.parse(localStorage.getItem("sitio") || "{}"); for (const m in MODS) dados[m] = Array.isArray(salvo[m]) ? salvo[m] : []; } catch {}
+    const gravar = () => localStorage.setItem("sitio", JSON.stringify(dados));
+    store = {
+      async salvar(m, id, rec) {
+        const novo = { ...rec, id: id || Date.now().toString(36) + Math.random().toString(36).slice(2, 7) };
+        dados[m] = dados[m].some(r => r.id === novo.id) ? dados[m].map(r => r.id === novo.id ? novo : r) : [...dados[m], novo];
+        gravar(); atualizar();
+      },
+      async excluir(m, id) { dados[m] = dados[m].filter(r => r.id !== id); gravar(); atualizar(); },
+    };
+    for (const m in MODS) pronto.add(m);
+    navigator.storage?.persist?.().catch(() => {});
+    if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+  $("#modo").textContent = modo === "nuvem" ? "Na sua conta" : "Neste aparelho";
+  atualizar();
+}
+iniciar();
+</script>
+</body>
+</html>
